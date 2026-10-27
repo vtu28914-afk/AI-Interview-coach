@@ -1,0 +1,134 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String          @id @default(cuid())
+  email               String          @unique
+  name                String
+  avatarUrl           String?
+  targetRole          String          @default("Software Engineer")
+  experienceLevel     String          @default("MID")
+  techStack           String          @default("React, Node.js, TypeScript, PostgreSQL") // Comma-separated or JSON string
+  resumeSummary       String?
+  resumeFileName      String?
+  currentStreak       Int             @default(3)
+  longestStreak       Int             @default(7)
+  totalInterviews     Int             @default(5)
+  averageScore        Float           @default(82.5)
+  targetInterviewDate String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  interviews          Interview[]
+  activities          Activity[]
+  calendarEvents      CalendarEvent[]
+
+  @@map("users")
+}
+
+model Interview {
+  id              String      @id @default(cuid())
+  userId          String
+  title           String
+  role            String
+  type            String      // TECHNICAL, BEHAVIORAL, HR_CULTURE, SYSTEM_DESIGN
+  mode            String      // VOICE, TEXT
+  status          String      // IN_PROGRESS, COMPLETED, ABANDONED
+  durationSeconds Int         @default(0)
+  overallScore    Float?
+  startedAt       DateTime    @default(now())
+  completedAt     DateTime?
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions       Question[]
+  feedback        Feedback?
+
+  @@map("interviews")
+}
+
+model Question {
+  id                   String     @id @default(cuid())
+  interviewId          String
+  orderIndex           Int        @default(1)
+  text                 String
+  type                 String     // TECHNICAL, BEHAVIORAL, HR_CULTURE
+  difficulty           String     // JUNIOR, MID, SENIOR, STAFF
+  domain               String
+  contextHint          String?
+  candidateAnswer      String?
+  idealAnswer          String?
+  audioDurationSeconds Int        @default(0)
+  wpm                  Float?
+  fillerWordCount      Int        @default(0)
+  score                Float?
+  followUpsJson        String?    // JSON stringified FollowUpQuestion[]
+
+  interview            Interview  @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+model Feedback {
+  id                     String    @id @default(cuid())
+  interviewId            String    @unique
+  overallScore           Float     @default(0)
+  technicalAccuracyScore Float     @default(0)
+  starComplianceScore    Float     @default(0)
+  speechClarityScore     Float     @default(0)
+  confidenceScore        Float     @default(0)
+  tone                   String    @default("Confident")
+  wpmAvg                 Float     @default(140)
+  totalFillerCount       Int       @default(0)
+  fillerWordsJson        String    // JSON stringified array of { word, count }
+  strengthsJson          String    // JSON stringified array of strings
+  improvementsJson       String    // JSON stringified array of strings
+  comparativeJson        String    // JSON stringified ComparativeAnalysis[]
+  starBreakdownJson      String?   // JSON stringified StarBreakdown
+  keyTakeawaysJson       String    // JSON stringified array of strings
+  createdAt              DateTime  @default(now())
+
+  interview              Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+model Activity {
+  id               String    @id @default(cuid())
+  userId           String
+  title            String
+  category         String    // Coding, Mock, Review, Behavioral
+  priority         String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status           String    @default("PLANNED") // PLANNED, COMPLETED, MISSED
+  targetDate       String    // YYYY-MM-DD
+  estimatedMinutes Int       @default(30)
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  description     String?
+  category        String   // INTERVIEW, STUDY, DSA, SYSTEM_DESIGN, BEHAVIORAL, REST
+  status          String   @default("PLANNED") // PLANNED, COMPLETED, MISSED
+  date            String   // YYYY-MM-DD
+  startTime       String   // HH:mm
+  endTime         String   // HH:mm
+  durationMinutes Int      @default(60)
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
